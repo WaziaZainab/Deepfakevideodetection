@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Deepfake Frame Detection with Analyze Button</title>
+<style>
+  body {
+    font-family: 'Inter', sans-serif;
+    background: #121212;
+    color: #eee;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 30px;
+  }
+  h2 {
+    margin-bottom: 15px;
+  }
+  video {
+    max-width: 600px;
+    border-radius: 12px;
+    background: black;
+  }
+  input[type="file"] {
+    margin-bottom: 10px;
+  }
+  button {
+    background-color: #3b82f6;
+    color: white;
+    border: none;
+    padding: 10px 25px;
+    font-size: 1rem;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-bottom: 20px;
+    transition: background-color 0.3s;
+  }
+  button:hover {
+    background-color: #2563eb;
+  }
+  .status-container {
+    display: flex;
+    align-items: center;
+    gap: 20px;
+  }
+  .status-box {
+    padding: 15px 25px;
+    border-radius: 12px;
+    font-size: 1.3rem;
+    font-weight: 600;
+    width: 320px;
+    text-align: center;
+    user-select: none;
+  }
+  .real {
+    background-color: #064e3b;
+    color: #a7f3d0;
+  }
+  .fake {
+    background-color: #7f1d1d;
+    color: #fca5a5;
+  }
+  .thumbnail {
+    width: 120px;
+    height: 90px;
+    border-radius: 12px;
+    background: black;
+    object-fit: cover;
+    border: 2px solid #555;
+  }
+</style>
+</head>
+<body>
+
+<h2> Deepfake video Detection </h2>
+
+<input type="file" id="videoInput" accept="video/*" />
+<video id="videoPlayer" controls></video>
+
+<button id="analyzeBtn" disabled>Analyze Video</button>
+
+<div id="statusSection" style="display:none;">
+  <div class="status-container">
+    <img id="frameThumbnail" class="thumbnail" alt="Frame Thumbnail" />
+    <div id="frameStatus" class="status-box"></div>
+  </div>
+</div>
+
+<script>
+  const videoInput = document.getElementById('videoInput');
+  const videoPlayer = document.getElementById('videoPlayer');
+  const analyzeBtn = document.getElementById('analyzeBtn');
+  const frameStatus = document.getElementById('frameStatus');
+  const frameThumbnail = document.getElementById('frameThumbnail');
+  const statusSection = document.getElementById('statusSection');
+
+  let analyzeInterval;
+  let videoDuration = 0;
+  let currentTime = 0;
+
+  // Enable Analyze button after video loaded
+  videoPlayer.addEventListener('loadedmetadata', () => {
+    videoDuration = videoPlayer.duration;
+    analyzeBtn.disabled = false;
+    statusSection.style.display = 'none';
+  });
+
+  videoInput.addEventListener('change', (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      const url = URL.createObjectURL(file);
+      videoPlayer.src = url;
+      analyzeBtn.disabled = true;
+      statusSection.style.display = 'none';
+      clearInterval(analyzeInterval);
+    }
+  });
+
+  analyzeBtn.addEventListener('click', () => {
+    if (!videoPlayer.src) return;
+    analyzeBtn.disabled = true;
+    statusSection.style.display = 'flex';
+    currentTime = 0;
+    videoPlayer.pause();
+    runAnalysis();
+  });
+
+  function runAnalysis() {
+    analyzeInterval = setInterval(() => {
+      if (currentTime >= videoDuration) {
+        clearInterval(analyzeInterval);
+        analyzeBtn.disabled = false;
+        return;
+      }
+      videoPlayer.currentTime = currentTime;
+      setTimeout(() => {
+        captureFrameThumbnail();
+        simulateDetection();
+        currentTime += 1.5; // Advance 1.5 seconds per frame analyzed
+      }, 300); // wait for seek to finish
+    }, 2000); // run every 2 seconds
+  }
+
+  function captureFrameThumbnail() {
+    const canvas = document.createElement('canvas');
+    const videoWidth = videoPlayer.videoWidth;
+    const videoHeight = videoPlayer.videoHeight;
+    canvas.width = videoWidth;
+    canvas.height = videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoPlayer, 0, 0, videoWidth, videoHeight);
+    frameThumbnail.src = canvas.toDataURL('image/jpeg');
+  }
+
+  function simulateDetection() {
+    const isFake = Math.random() > 0.5;
+    const confidence = Math.floor(Math.random() * 21) + 80; // 80-100%
+    frameStatus.textContent = isFake
+      ? `🚨 Deepfake Detected\nConfidence: ${confidence}%`
+      : `✅ Frame looks Real\nConfidence: ${confidence}%`;
+    frameStatus.className = 'status-box ' + (isFake ? 'fake' : 'real');
+  }
+</script>
+
+</body>
+</html>
